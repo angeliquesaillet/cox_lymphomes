@@ -13,7 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r}
-source("pre-treatment_db.R")
+source("../R/pre-treatment_db.R")
 ```
 
 # Clinical only
@@ -64,44 +64,6 @@ linearCox.analyze(gene.code)
 
 ## Productions graphiques 
 
-```{r}
-#Regression smooth vis a vis de la censure 
-plot(rna,clinical.db$censor)
-lines(smooth.spline(rna,clinical.db$censor),col='red')
-
-
-
-#Residus martingales du modèle nul 
-cox.0<-coxph(survie ~1,data=clinical.db)
-plot(predict(cox.0),residuals(cox.0,type="martingale"))
-plot(rna,residuals(cox.0,type="martingale"))
-
-plot(predict(cox.gene),residuals(cox.gene,type="martingale"))
-lines(smooth.spline(predict(cox.gene),residuals(cox.gene,type="martingale")),col='red')
-
-
-
-plot(rna,residuals(cox.gene,type="martingale"),main=paste0("Martingale residuals accordint to RNA level of ",gene.code),ylab="maritngale residuals")
-lines(smooth.spline(rna,residuals(cox.gene,type="martingale")),col='red',lwd=2.5)
-
-
-plot(rna,residuals(cox.gene,type="score"),main=paste0("Score residuals according to RNA level of ",gene.code),ylab="score residuals")
-
-
-
-resid_coxsnell <- -(residuals(cox.gene,type="martingale") - clinical.db$censor)
-fit_coxsnell <- coxph(formula = Surv(resid_coxsnell, clinical.db$censor) ~ 1,
-                      ties    = c("efron","breslow","exact")[1])
-
-## Nelson-Aalen estimator for baseline hazard (all covariates zero)
-df_base_haz <- basehaz(fit_coxsnell, centered = FALSE)
-
-plot(df_base_haz$time,df_base_haz$hazard,col='red',type='l',xlim=c(0,1.2),ylim=c(0,1.2),lwd=3,xlab="Cox-Snell residuals",ylab=" ",main=paste0("Cox-Snell residuals for  ",gene.code))
-abline(a=0,b=1,lty=2)
-
-residuals(cox.gene,type="score")
-AIC(cox.gene)
-```
 Courbes roc : 
 
 ```{r}
@@ -123,4 +85,20 @@ Concordance :
 conc<-concordance(cox.gene)
 lower<-conc$concordance-sqrt(conc$var)*1.96
 upper<-conc$concordance+sqrt(conc$var)*1.96
+```
+
+
+## Si linéaire PAS SATISFAISANT 
+
+Pour avoir une idée de la fonction non paramétrique 
+
+```{r}
+#Regression smooth vis a vis de la censure si linéaire pas ok ! 
+plot(rna,clinical.db$censor)
+lines(smooth.spline(rna,clinical.db$censor),col='red')
+
+#Residus martingales du modèle nul 
+cox.0<-coxph(survie ~1,data=clinical.db)
+plot(rna,residuals(cox.0,type="martingale"))
+lines(smooth.spline(rna,residuals(cox.gene,type="martingale")),col='red')
 ```

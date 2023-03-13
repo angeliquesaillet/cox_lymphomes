@@ -38,10 +38,10 @@ db.pretreatment<-function(db.clinical,db.rna){
 #--------------------------------------------------------------
 #Load original datasets 
 library(readxl)
-clinical.original <- read_excel("Duke_Follow_censor_ABC_GCB_Hans.xlsx")
-rna.original<-read.csv2("original data/Duke-1001DLBCL_log2_rpm.csv",sep=",")
+clinical.original <- read_excel("../Data/Duke_Follow_censor_ABC_GCB_Hans.xlsx")
+rna.original<-read.csv2("../Data/original data/Duke-1001DLBCL_log2_rpm.csv",sep=",")
 colnames(rna.original)[1]="id"
-mutation.original <- read_excel("Duke_Mutations.xlsx")
+mutation.original <- read_excel("../Data/Duke_Mutations.xlsx")
 
 
 #Transform datasets by using the function 

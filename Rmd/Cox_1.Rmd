@@ -1,0 +1,126 @@
+---
+title: "Cox_1"
+author: "Angélique Saillet"
+date: "08/03/2023"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(readxl)
+library(survival)
+library(ggfortify)
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+source("pre-treatment_db.R")
+```
+
+# Clinical only
+
+## Statistiques descriptives 
+
+```{r}
+clinical.db$follow<-as.numeric(clinical.db$follow)
+# histogramme
+hist(clinical.db$follow,main='Histogramme de la durée de suivie')
+
+#boxplot
+boxplot(clinical.db$follow,main="distribution de follow")
+abline(h=mean(clinical.db$follow,na.rm=T),col='red',lty=2)
+
+#boxplot en fonction de classification 
+boxplot(clinical.db$follow~clinical.db$ABC_GCB,ylab="Durée de survie",col=c(3,4),main="boxplot de follow en fonction de ABC_GCB")#Données globales(i.e données non censurées et censurées)
+
+#taux de censure par grp
+length(which(clinical.db$censor==0))/length(clinical.db$censor)#0=censored, 1=no-censored
+```
+
+## Cox général 
+
+```{r,warning=F,message=F}
+survie<-Surv(clinical.db$follow,clinical.db$censor)
+fit<-survfit(survie~1)
+autoplot(fit)+ylim(0,1)
+```
+
+# Clinical & RNA
+
+## Ebauche processus à effectuer gène par gène sur BLC2 
+
+```{r}
+gene.code="BCL2"
+```
+
+```{r}
+hist(as.numeric(rna.db[,which(colnames(rna.db)==gene.code)]),main=paste0("expression de ",gene.code," en log2"))
+```
+
+```{r}
+cox.gene<-linearCox.analyze(gene.code)$m
+rna<-as.numeric(rna.db[,which(colnames(rna.db)==gene.code)])
+linearCox.analyze(gene.code)
+```
+
+## Productions graphiques 
+
+```{r}
+#Regression smooth vis a vis de la censure 
+plot(rna,clinical.db$censor)
+lines(smooth.spline(rna,clinical.db$censor),col='red')
+
+
+
+#Residus martingales du modèle nul 
+cox.0<-coxph(survie ~1,data=clinical.db)
+plot(predict(cox.0),residuals(cox.0,type="martingale"))
+plot(rna,residuals(cox.0,type="martingale"))
+
+plot(predict(cox.gene),residuals(cox.gene,type="martingale"))
+lines(smooth.spline(predict(cox.gene),residuals(cox.gene,type="martingale")),col='red')
+
+
+
+plot(rna,residuals(cox.gene,type="martingale"),main=paste0("Martingale residuals accordint to RNA level of ",gene.code),ylab="maritngale residuals")
+lines(smooth.spline(rna,residuals(cox.gene,type="martingale")),col='red',lwd=2.5)
+
+
+plot(rna,residuals(cox.gene,type="score"),main=paste0("Score residuals according to RNA level of ",gene.code),ylab="score residuals")
+
+
+
+resid_coxsnell <- -(residuals(cox.gene,type="martingale") - clinical.db$censor)
+fit_coxsnell <- coxph(formula = Surv(resid_coxsnell, clinical.db$censor) ~ 1,
+                      ties    = c("efron","breslow","exact")[1])
+
+## Nelson-Aalen estimator for baseline hazard (all covariates zero)
+df_base_haz <- basehaz(fit_coxsnell, centered = FALSE)
+
+plot(df_base_haz$time,df_base_haz$hazard,col='red',type='l',xlim=c(0,1.2),ylim=c(0,1.2),lwd=3,xlab="Cox-Snell residuals",ylab=" ",main=paste0("Cox-Snell residuals for  ",gene.code))
+abline(a=0,b=1,lty=2)
+
+residuals(cox.gene,type="score")
+AIC(cox.gene)
+```
+Courbes roc : 
+
+```{r}
+library(survivalROC)
+scr<-predict(cox.gene,type='risk')
+roc.1<-survivalROC(Stime=clinical.db$follow,status=clinical.db$censor,marker=scr,predict.time=10,span=0.05)
+roc.2<-survivalROC(Stime=clinical.db$follow,status=clinical.db$censor,marker=scr,predict.time=10,method="KM")
+
+plot(roc.1$FP,roc.1$TP,type='l',col='red')
+points(roc.2$FP,roc.2$TP,type='l',col='blue')
+abline(a=0,b=1)
+
+#quel marker ? 
+```
+
+Concordance : 
+
+```{r}
+conc<-concordance(cox.gene)
+lower<-conc$concordance-sqrt(conc$var)*1.96
+upper<-conc$concordance+sqrt(conc$var)*1.96
+```

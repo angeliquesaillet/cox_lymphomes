@@ -71,6 +71,12 @@ linearCox.analyze<-function(gene.code){
   concordance.IC.lower<-conc$concordance-sqrt(conc$var)*1.96
   concordance.IC.upper<-conc$concordance+sqrt(conc$var)*1.96
   
+  #P.value d'un test de rapport de vraisemblance 
+  LRatio.pvalue<-summary(cox.gene)$logtest[3]
+  
+  #P.value du test de Log rank 
+  LRank.pvalue<-summary(cox.gene)$sctest[3]
+  
   #PLOT TOOLS
   #log(risk)
   plot(rna,log(predict(cox.gene,type="risk")),ylim=c(-1,1),ylab="log(risk)",main=paste0("log(risk) function according to RNA level of ",gene.code))
@@ -87,7 +93,7 @@ linearCox.analyze<-function(gene.code){
   plot(df_base_haz$time,df_base_haz$hazard,col='red',type='l',xlim=c(0,1.2),ylim=c(0,1.2),lwd=3,xlab="Cox-Snell residuals",ylab=" ",main=paste0("Cox-Snell residuals for  ",gene.code))
   abline(a=0,b=1,lty=2)
 
-  return(list('model'=cox.gene,"AIC"=AIC,'concordance'=concordance,'concordance.IC.lower'= concordance.IC.lower,'concordance.IC.upper'=concordance.IC.upper))
+  return(list('model'=cox.gene,"AIC"=AIC,"concordance"=list('value'=concordance,'concordance.IC.lower'= concordance.IC.lower,'concordance.IC.upper'=concordance.IC.upper),'LRatio.pvalue'=LRatio.pvalue,'LRank.pvalue'=LRank.pvalue))
 }
 
 

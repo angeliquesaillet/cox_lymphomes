@@ -60,9 +60,32 @@ hist(as.numeric(rna.db[,which(colnames(rna.db)==gene.code)]),main=paste0("expres
 cox.gene<-linearCox.analyze(gene.code)$m
 rna<-as.numeric(rna.db[,which(colnames(rna.db)==gene.code)])
 linearCox.analyze(gene.code)
+
+test<-summary(cox.gene)
+test$logtest[3] #likelihood ratio 
+test$sctest[3] #score test / log rank
 ```
 
 ## Productions graphiques 
+
+Résidus score : 
+
+```{r}
+residuals(cox.gene,type='score')
+plot(predict(cox.gene),residuals(cox.gene,type='score'))
+plot(clinical.db$follow,residuals(cox.gene,type='score'))
+
+```
+
+R2 : 
+
+```{r}
+library(CoxR2)
+coxr2(cox.gene)$rsq #R2, Difference in log partial likelihoods between the fitted model and the null model with no regressors is divided by the number of uncensored events
+#based on the partial likelihood ratio statistic
+
+summary(cox.gene)$rsq[1] # R2, Difference in log partial likelihoods between the fitted model and the null model with no regressors is divided by the number of total observation (Nagelkirke)
+```
 
 Courbes roc : 
 

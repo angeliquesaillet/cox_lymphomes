@@ -48,22 +48,21 @@ autoplot(fit)+ylim(0,1)
 
 ## Ebauche processus à effectuer gène par gène sur BLC2 
 
+
 ```{r}
 gene.code="BCL2"
+par(mfrow=c(2,2))
+linearCox.analyze(gene.code)
 ```
 
 ```{r}
 hist(as.numeric(rna.db[,which(colnames(rna.db)==gene.code)]),main=paste0("expression de ",gene.code," en log2"))
 ```
 
+
 ```{r}
 cox.gene<-linearCox.analyze(gene.code)$m
 rna<-as.numeric(rna.db[,which(colnames(rna.db)==gene.code)])
-linearCox.analyze(gene.code)
-
-test<-summary(cox.gene)
-test$logtest[3] #likelihood ratio 
-test$sctest[3] #score test / log rank
 ```
 
 ## Productions graphiques 
@@ -92,22 +91,33 @@ Courbes roc :
 ```{r}
 library(survivalROC)
 scr<-predict(cox.gene,type='risk')
-roc.1<-survivalROC(Stime=clinical.db$follow,status=clinical.db$censor,marker=scr,predict.time=10,span=0.05)
-roc.2<-survivalROC(Stime=clinical.db$follow,status=clinical.db$censor,marker=scr,predict.time=10,method="KM")
 
-plot(roc.1$FP,roc.1$TP,type='l',col='red')
+t<-10
+roc.1<-survivalROC(Stime=clinical.db$follow,status=clinical.db$censor,marker=scr,predict.time=t,span=0.05)
+roc.2<-survivalROC(Stime=clinical.db$follow,status=clinical.db$censor,marker=scr,predict.time=t,method="KM")
+
+plot(roc.1$FP,roc.1$TP,type='l',col='red',main=paste0("Courbe ROC à l'instant t = ",t),ylab="TP",xlab="FP")
 points(roc.2$FP,roc.2$TP,type='l',col='blue')
+text(c(0.8,0.8),c(0.2,0.1),labels=c(paste0("AUC (NNE) = ",round(roc.1$AUC,3)),paste0("AUC (KM) = ",round(roc.2$AUC,3))),col=c('red','blue'))
 abline(a=0,b=1)
 
 #quel marker ? 
 ```
 
-Concordance : 
+
+Calibration : 
 
 ```{r}
-conc<-concordance(cox.gene)
-lower<-conc$concordance-sqrt(conc$var)*1.96
-upper<-conc$concordance+sqrt(conc$var)*1.96
+
+rna<-as.numeric(rna.db[,which(colnames(rna.db)==gene.code)])
+survie<-Surv(as.numeric(clinical.db$follow),clinical.db$censor)
+library(rms)
+nD=11
+cox.gene<-cph(survie ~ rna,x=TRUE, y=TRUE, 
+         surv=TRUE, time.inc =nD, dxy = TRUE)
+
+c1<-calibrate(cox.gene,u=nD)
+plot(c1)
 ```
 
 
@@ -125,3 +135,57 @@ cox.0<-coxph(survie ~1,data=clinical.db)
 plot(rna,residuals(cox.0,type="martingale"))
 lines(smooth.spline(rna,residuals(cox.gene,type="martingale")),col='red')
 ```
+
+
+# Comparaison des 4 premiers gènes
+
+```{r,fig.height=10,fig.width=10}
+#production graphiques
+AIC<-c()
+Concordance<-c()
+LRatio.pvalue<-c()
+LRank.pvalue<-c()
+R2<-c()
+for (gene.code in c('BCL2','BCL6','MYC','TP53')){
+  par(mfrow=c(2,2))
+  m<-linearCox.analyze(gene.code)
+  AIC<-c(AIC,m$AIC)
+  Concordance<-c(Concordance,m$concordance$value)
+  LRatio.pvalue<-c(LRatio.pvalue,m$LRatio.pvalue)
+  LRank.pvalue<-c(LRank.pvalue,m$LRank.pvalue)
+  R2<-c(R2,m$R.squared)
+}
+
+DF<-data.frame(cbind(AIC,Concordance,LRatio.pvalue,LRank.pvalue,R2))
+rownames(DF)<-c('BCL2','BCL6','MYC','TP53')
+DF
+```
+
+
+# Comparaison mutés/non mutés/tous
+
+```{r}
+gene.code="MYC"
+m.all<-linearCox.analyze(gene.code)$m
+m.mutes<-linearCox.analyze(gene.code,mutations = T)$m
+m.non.mutes<-linearCox.analyze(gene.code,mutations = F)$m
+
+rna<-as.numeric(rna.db[,which(colnames(rna.db)==gene.code)])
+idc.m<-which(mutations.db[,which(colnames(mutations.db)==gene.code)]==1)
+rna.m<-rna[idc.m]
+idc.nm<-which(mutations.db[,which(colnames(mutations.db)==gene.code)]==0)
+rna.nonm<-rna[idc.nm]
+
+#martingale residuals to RNA level
+plot(rna,residuals(m.all,type="martingale"),main=paste0("Martingale residuals according to RNA level of ",gene.code),ylab="martingale residuals",col='white')
+lines(smooth.spline(rna,residuals(m.all,type="martingale")),col='red',lwd=2.5)
+lines(smooth.spline(rna.m,residuals(m.mutes,type="martingale")),col='blue',lwd=2.5)
+lines(smooth.spline(rna.nonm,residuals(m.non.mutes,type="martingale")),col='green',lwd=2.5)
+
+
+```
+ 
+ 
+ 
+ 
+ 

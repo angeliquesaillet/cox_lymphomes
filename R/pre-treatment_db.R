@@ -53,15 +53,42 @@ mutations.db<-db.pretreatment(clinical.db,mutation.original)$rna.db
 #function that apply a Cox linear-gene model 
 #return different output as the model, R2, AIC & different plots (ROC, martingale,Cox Snell & Score residues,Concordance with IC)
 library(survival)
-linearCox.analyze<-function(gene.code){
+library(survivalROC)
+library(CoxR2)
+
+linearCox.analyze<-function(gene.code,mutations="ALL"){
+  # the parameter gene.code defines the specific gene on which the model is applied
   
+  #the mutations parameter allows to decide on which data set the model is applied according to the mutation status of the observations i.e. 
+  ## if mutations = "ALL" then the model is applied on all observations independently of their mutation status (by default)
+  ## if mutations = TRUE then the model is applied only on the observations for which the gene is mutated. 
+  ## if mutations = FALSE then the model is applied only on the observations for which the gene is not mutated. 
+  
+ #Observations selection according to the mutations parameter
   rna<-as.numeric(rna.db[,which(colnames(rna.db)==gene.code)])
+  clinical<-clinical.db
+  
+  if(mutations==T){
+    idc.m<-which(mutations.db[,which(colnames(mutations.db)==gene.code)]==1)
+    rna<-rna[idc.m]
+    clinical<-clinical[idc.m,]
+  }
+  
+  if(mutations==F){
+    idc.nm<-which(mutations.db[,which(colnames(mutations.db)==gene.code)]==0)
+    rna<-rna[idc.nm]
+    clinical<-clinical[idc.nm,]
+  }
+
   
   #model application
-  survie<-Surv(as.numeric(clinical.db$follow),clinical.db$censor)
+  survie<-Surv(as.numeric(clinical$follow),clinical$censor)
   cox.gene<-coxph(survie ~ rna)
   
   #MEASURE TOOLS
+  #r2
+  R.squared<-coxr2(cox.gene)$rsq 
+  
   #aic
   AIC=AIC(cox.gene)
   
@@ -86,14 +113,24 @@ linearCox.analyze<-function(gene.code){
   lines(smooth.spline(rna,residuals(cox.gene,type="martingale")),col='red',lwd=2.5)
   
   #Cox-Snell residuals
-  resid_coxsnell <- -(residuals(cox.gene,type="martingale") - clinical.db$censor)
-  fit_coxsnell <- coxph(formula = Surv(resid_coxsnell, clinical.db$censor) ~ 1,
+  resid_coxsnell <- -(residuals(cox.gene,type="martingale") - clinical$censor)
+  fit_coxsnell <- coxph(formula = Surv(resid_coxsnell, clinical$censor) ~ 1,
                         ties    = c("efron","breslow","exact")[1])
   df_base_haz <- basehaz(fit_coxsnell, centered = FALSE)
-  plot(df_base_haz$time,df_base_haz$hazard,col='red',type='l',xlim=c(0,1.2),ylim=c(0,1.2),lwd=3,xlab="Cox-Snell residuals",ylab=" ",main=paste0("Cox-Snell residuals for  ",gene.code))
+  plot(df_base_haz$time,df_base_haz$hazard,col='red',type='l',xlim=c(0,max(df_base_haz$time)+0.2),ylim=c(0,max(df_base_haz$hazard)+0.2),lwd=3,xlab="Cox-Snell residuals",ylab=" ",main=paste0("Cox-Snell residuals for  ",gene.code))
   abline(a=0,b=1,lty=2)
+  
+  #Courbes ROC 
+  scr<-predict(cox.gene,type='risk')
+  t<-10
+  roc.1<-survivalROC(Stime=clinical$follow,status=clinical$censor,marker=scr,predict.time=t,span=0.05)
+  roc.2<-survivalROC(Stime=clinical$follow,status=clinical$censor,marker=scr,predict.time=t,method="KM")
+  plot(roc.1$FP,roc.1$TP,type='l',col='red',main=paste0("Courbe ROC à l'instant t = ",t),ylab="TP",xlab="FP")
+  points(roc.2$FP,roc.2$TP,type='l',col='blue')
+  text(c(0.8,0.8),c(0.2,0.1),labels=c(paste0("AUC (NNE) = ",round(roc.1$AUC,3)),paste0("AUC (KM) = ",round(roc.2$AUC,3))),col=c('red','blue'))
+  abline(a=0,b=1)
 
-  return(list('model'=cox.gene,"AIC"=AIC,"concordance"=list('value'=concordance,'concordance.IC.lower'= concordance.IC.lower,'concordance.IC.upper'=concordance.IC.upper),'LRatio.pvalue'=LRatio.pvalue,'LRank.pvalue'=LRank.pvalue))
+  return(list('model'=cox.gene,"AIC"=AIC,"concordance"=list('value'=concordance,'concordance.IC.lower'= concordance.IC.lower,'concordance.IC.upper'=concordance.IC.upper),'LRatio.pvalue'=LRatio.pvalue,'LRank.pvalue'=LRank.pvalue,'R.squared'=R.squared))
 }
 
 

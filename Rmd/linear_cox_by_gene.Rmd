@@ -187,8 +187,9 @@ legend(x=5,y=1.5,legend=c(paste0('All (n =',length(rna),")"),paste0('Mutés (n =
 # Table de significativité des mutations pour chaque gène
 
 ```{r,warning=F}
-source("../R/mutations_significativity.R")
-signif.mutations.table<-significativity.indicator.table()
+source("../R/mutations_significance.R")
+signif.mutations.table<-significance.indicator.table()
+signif.mutations.table
 ```
  
  

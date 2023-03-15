@@ -2,7 +2,7 @@
 title: "Cox_1"
 author: "Angélique Saillet"
 date: "08/03/2023"
-output: html_document
+output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
@@ -13,7 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r}
-source("../R/pre-treatment_db.R")
+source("../R/linear_cox.R")
 ```
 
 # Clinical only

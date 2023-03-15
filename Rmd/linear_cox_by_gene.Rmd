@@ -46,45 +46,33 @@ autoplot(fit)+ylim(0,1)
 
 # Clinical & RNA
 
-## Ebauche processus à effectuer gène par gène sur BLC2 
-
+## Application de la procédure linéaire pour le gène BLC2 
 
 ```{r}
 gene.code="BCL2"
+hist(as.numeric(rna.db[,which(colnames(rna.db)==gene.code)]),main=paste0("expression de ",gene.code," en log2"))
+```
+
+```{r}
 par(mfrow=c(2,2))
 linearCox.analyze(gene.code)
 ```
 
 ```{r}
-hist(as.numeric(rna.db[,which(colnames(rna.db)==gene.code)]),main=paste0("expression de ",gene.code," en log2"))
-```
-
-
-```{r}
-cox.gene<-linearCox.analyze(gene.code)$m
+cox.gene<-linearCox.analyze(gene.code,graph=F)$m
 rna<-as.numeric(rna.db[,which(colnames(rna.db)==gene.code)])
 ```
 
-## Productions graphiques 
+## Productions graphiques (à intégrer)
 
 Résidus score : 
 
 ```{r}
-residuals(cox.gene,type='score')
+#residuals(cox.gene,type='score')
 plot(predict(cox.gene),residuals(cox.gene,type='score'))
 plot(clinical.db$follow,residuals(cox.gene,type='score'))
-
 ```
 
-R2 : 
-
-```{r}
-library(CoxR2)
-coxr2(cox.gene)$rsq #R2, Difference in log partial likelihoods between the fitted model and the null model with no regressors is divided by the number of uncensored events
-#based on the partial likelihood ratio statistic
-
-summary(cox.gene)$rsq[1] # R2, Difference in log partial likelihoods between the fitted model and the null model with no regressors is divided by the number of total observation (Nagelkirke)
-```
 
 Courbes roc : 
 
@@ -105,10 +93,19 @@ abline(a=0,b=1)
 ```
 
 
+R2 : 
+
+```{r}
+library(CoxR2)
+coxr2(cox.gene)$rsq #R2, Difference in log partial likelihoods between the fitted model and the null model with no regressors is divided by the number of uncensored events
+#based on the partial likelihood ratio statistic
+
+summary(cox.gene)$rsq[1] # R2, Difference in log partial likelihoods between the fitted model and the null model with no regressors is divided by the number of total observation (Nagelkirke)
+```
+
 Calibration : 
 
 ```{r}
-
 rna<-as.numeric(rna.db[,which(colnames(rna.db)==gene.code)])
 survie<-Surv(as.numeric(clinical.db$follow),clinical.db$censor)
 library(rms)
@@ -121,23 +118,7 @@ plot(c1)
 ```
 
 
-## Si linéaire PAS SATISFAISANT 
-
-Pour avoir une idée de la fonction non paramétrique 
-
-```{r}
-#Regression smooth vis a vis de la censure si linéaire pas ok ! 
-plot(rna,clinical.db$censor)
-lines(smooth.spline(rna,clinical.db$censor),col='red')
-
-#Residus martingales du modèle nul 
-cox.0<-coxph(survie ~1,data=clinical.db)
-plot(rna,residuals(cox.0,type="martingale"))
-lines(smooth.spline(rna,residuals(cox.gene,type="martingale")),col='red')
-```
-
-
-# Comparaison des 4 premiers gènes
+## Comparaison des sorties pour les 4 premiers gènes BCL2, BCL6, MYC, TP53
 
 ```{r,fig.height=10,fig.width=10}
 #production graphiques
@@ -162,13 +143,30 @@ DF
 ```
 
 
-# Comparaison mutés/non mutés/tous
+## Productions graphiques à intégrer si linéaire pas adéquate 
+
+Pour avoir une idée de la fonction non paramétrique 
 
 ```{r}
-gene.code="MYC"
-m.all<-linearCox.analyze(gene.code)$m
-m.mutes<-linearCox.analyze(gene.code,mutations = T)$m
-m.non.mutes<-linearCox.analyze(gene.code,mutations = F)$m
+#Regression smooth vis a vis de la censure si linéaire pas ok ! 
+plot(rna,clinical.db$censor)
+lines(smooth.spline(rna,clinical.db$censor),col='red')
+
+#Residus martingales du modèle nul 
+cox.0<-coxph(survie ~1,data=clinical.db)
+plot(rna,residuals(cox.0,type="martingale"))
+lines(smooth.spline(rna,residuals(cox.gene,type="martingale")),col='red')
+```
+
+
+# Comparaison mutés/non mutés/tous
+
+```{r,fig.height=10,fig.width=10}
+par(mfrow=c(2,2))
+for (gene.code in c('BCL2','BCL6','MYC','TP53')){
+m.all<-linearCox.analyze(gene.code,graph=F)$m
+m.mutes<-linearCox.analyze(gene.code,mutations = T,graph=F)$m
+m.non.mutes<-linearCox.analyze(gene.code,mutations = F,graph=F)$m
 
 rna<-as.numeric(rna.db[,which(colnames(rna.db)==gene.code)])
 idc.m<-which(mutations.db[,which(colnames(mutations.db)==gene.code)]==1)
@@ -177,12 +175,12 @@ idc.nm<-which(mutations.db[,which(colnames(mutations.db)==gene.code)]==0)
 rna.nonm<-rna[idc.nm]
 
 #martingale residuals to RNA level
-plot(rna,residuals(m.all,type="martingale"),main=paste0("Martingale residuals according to RNA level of ",gene.code),ylab="martingale residuals",col='white')
+plot(rna,residuals(m.all,type="martingale"),main=paste0("Martingale residuals according to RNA level of ",gene.code),ylab="martingale residuals",col='white',ylim=c(-1.5,1.5))
 lines(smooth.spline(rna,residuals(m.all,type="martingale")),col='red',lwd=2.5)
 lines(smooth.spline(rna.m,residuals(m.mutes,type="martingale")),col='blue',lwd=2.5)
 lines(smooth.spline(rna.nonm,residuals(m.non.mutes,type="martingale")),col='green',lwd=2.5)
-
-
+legend(x=5,y=1.5,legend=c(paste0('All (n =',length(rna),")"),paste0('Mutés (n = ',length(rna.m)," = ",round((length(rna.m)/length(rna))*100,1),'%)'),paste0('Non mutés (n = ',length(rna.nonm)," = ",round((length(rna.nonm)/length(rna))*100,1),'%)')),lty=c(1,1,1),col=c('red','blue','green'))
+}
 ```
  
  

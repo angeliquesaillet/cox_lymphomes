@@ -50,12 +50,13 @@ autoplot(fit)+ylim(0,1)
 
 ```{r}
 gene.code="BCL2"
-hist(as.numeric(rna.db[,which(colnames(rna.db)==gene.code)]),main=paste0("expression de ",gene.code," en log2"))
+hist(as.numeric(rna.db[,which(colnames(rna.db)==gene.code)]),main=paste0("expression de ",gene.code," en log2 \n *text*"))
 ```
 
-```{r}
+```{r,fig.height=10,fig.width=10}
 par(mfrow=c(2,2))
 linearCox.analyze(gene.code)
+
 ```
 
 ```{r}

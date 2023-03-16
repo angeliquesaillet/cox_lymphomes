@@ -103,5 +103,6 @@ significance.indicator.table<-function(){
   return(results.table)
 }
 
+signif.mutations.table<-significance.indicator.table()
 
 

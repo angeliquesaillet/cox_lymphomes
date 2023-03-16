@@ -106,11 +106,21 @@ linearCox.analyze<-function(gene.code,mutations="ALL",graph=TRUE){
   #P.value du test de Log rank 
   LRank.pvalue<-summary(cox.gene)$sctest[3]
   
+  #the tools used to make the titles indicative 
+  if(mutations=="ALL"){
+    mutations.title="all observations"
+  }
+  if(mutations==T){
+    mutations.title="only with the mutated observations"
+  }
+  if(mutations==F){
+    mutations.title="only with the non-mutated observations"
+  }
   
   if(graph==T){
     #PLOT TOOLS
     #log(risk)
-    plot(rna,log(predict(cox.gene,type="risk")),ylim=c(-1,1),ylab="log(risk)",main=paste0("log(risk) function according to RNA level of ",gene.code))
+    plot(rna,log(predict(cox.gene,type="risk")),ylim=c(-1,1),ylab="log(risk)",main=paste0("log(risk) function according to RNA level of ",gene.code,"\n *",mutations.title,"*"))
     
     #martingale residuals to RNA level
     plot(rna,residuals(cox.gene,type="martingale"),main=paste0("Martingale residuals according to RNA level of ",gene.code),ylab="martingale residuals")

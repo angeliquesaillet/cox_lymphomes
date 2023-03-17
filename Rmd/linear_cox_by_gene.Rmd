@@ -154,7 +154,7 @@ DF
 
 ## Productions graphiques à intégrer si linéaire pas adéquate 
 
-Pour avoir une idée de la fonction non paramétrique 
+Pour avoir une idée de la fonction non paramétrique :
 
 ```{r}
 #Regression smooth vis a vis de la censure si linéaire pas ok ! 

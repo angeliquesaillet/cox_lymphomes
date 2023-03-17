@@ -108,22 +108,22 @@ linearCox.analyze<-function(gene.code,mutations="ALL",graph=TRUE){
   
   #the tools used to make the titles indicative 
   if(mutations=="ALL"){
-    mutations.title="all observations"
+    mutations.title=paste("all observations (n=",length(rna),")")
   }
   if(mutations==T){
-    mutations.title="only with the mutated observations"
+    mutations.title=paste("only with the mutated observations (n=",length(rna),")")
   }
   if(mutations==F){
-    mutations.title="only with the non-mutated observations"
+    mutations.title=paste("only with the non-mutated observations (n=",length(rna),")")
   }
   
   if(graph==T){
     #PLOT TOOLS
     #log(risk)
-    plot(rna,log(predict(cox.gene,type="risk")),ylim=c(-1,1),ylab="log(risk)",main=paste0("log(risk) function according to RNA level of ",gene.code,"\n *",mutations.title,"*"))
+    plot(rna,log(predict(cox.gene,type="risk")),ylim=c(-1,1),ylab="log(risk)",main=paste0("log(risk) function according to RNA level of ",gene.code,"\n * ",mutations.title," *"),cex.main=1)
     
     #martingale residuals to RNA level
-    plot(rna,residuals(cox.gene,type="martingale"),main=paste0("Martingale residuals according to RNA level of ",gene.code),ylab="martingale residuals")
+    plot(rna,residuals(cox.gene,type="martingale"),main=paste0("Martingale residuals according to RNA level of ",gene.code,"\n * ",mutations.title," *"),cex.main=1,ylab="martingale residuals")
     lines(smooth.spline(rna,residuals(cox.gene,type="martingale")),col='red',lwd=2.5)
     
     #Cox-Snell residuals
@@ -131,7 +131,7 @@ linearCox.analyze<-function(gene.code,mutations="ALL",graph=TRUE){
     fit_coxsnell <- coxph(formula = Surv(resid_coxsnell, clinical$censor) ~ 1,
                           ties    = c("efron","breslow","exact")[1])
     df_base_haz <- basehaz(fit_coxsnell, centered = FALSE)
-    plot(df_base_haz$time,df_base_haz$hazard,col='red',type='l',xlim=c(0,max(df_base_haz$time)+0.2),ylim=c(0,max(df_base_haz$hazard)+0.2),lwd=3,xlab="Cox-Snell residuals",ylab=" ",main=paste0("Cox-Snell residuals for  ",gene.code))
+    plot(df_base_haz$time,df_base_haz$hazard,col='red',type='l',xlim=c(0,max(df_base_haz$time)+0.2),ylim=c(0,max(df_base_haz$hazard)+0.2),lwd=3,xlab="Cox-Snell residuals",ylab=" ",main=paste0("Cox-Snell residuals for  ",gene.code,"\n * ",mutations.title," *"),cex.main=1)
     abline(a=0,b=1,lty=2)
     
     #Courbes ROC 
@@ -139,7 +139,7 @@ linearCox.analyze<-function(gene.code,mutations="ALL",graph=TRUE){
     t<-10
     roc.1<-survivalROC(Stime=clinical$follow,status=clinical$censor,marker=scr,predict.time=t,span=0.05)
     roc.2<-survivalROC(Stime=clinical$follow,status=clinical$censor,marker=scr,predict.time=t,method="KM")
-    plot(roc.1$FP,roc.1$TP,type='l',col='red',main=paste0("Courbe ROC à l'instant t = ",t),ylab="TP",xlab="FP")
+    plot(roc.1$FP,roc.1$TP,type='l',col='red',main=paste0("Courbe ROC à l'instant t = ",t,"\n * ",mutations.title," *"),cex.main=1,ylab="TP",xlab="FP")
     points(roc.2$FP,roc.2$TP,type='l',col='blue')
     text(c(0.8,0.8),c(0.2,0.1),labels=c(paste0("AUC (NNE) = ",round(roc.1$AUC,3)),paste0("AUC (KM) = ",round(roc.2$AUC,3))),col=c('red','blue'))
     abline(a=0,b=1)

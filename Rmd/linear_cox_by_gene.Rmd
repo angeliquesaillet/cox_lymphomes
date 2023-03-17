@@ -46,16 +46,20 @@ autoplot(fit)+ylim(0,1)
 
 # Clinical & RNA
 
+
+
 ## Application de la procédure linéaire pour le gène BLC2 
 
 ```{r}
 gene.code="BCL2"
-hist(as.numeric(rna.db[,which(colnames(rna.db)==gene.code)]),main=paste0("expression de ",gene.code," en log2 \n *text*"))
+hist(as.numeric(rna.db[,which(colnames(rna.db)==gene.code)]),main = paste('expression de',gene.code,'en log2'),cex.main=1)
 ```
 
 ```{r,fig.height=10,fig.width=10}
 par(mfrow=c(2,2))
 linearCox.analyze(gene.code)
+linearCox.analyze(gene.code,mutations = T)
+linearCox.analyze(gene.code,mutations = F)
 
 ```
 
@@ -121,6 +125,10 @@ plot(c1)
 
 ## Comparaison des sorties pour les 4 premiers gènes BCL2, BCL6, MYC, TP53
 
+```{r,warning=F}
+source("../R/automated_procedure.R")
+```
+
 ```{r,fig.height=10,fig.width=10}
 #production graphiques
 AIC<-c()
@@ -130,7 +138,7 @@ LRank.pvalue<-c()
 R2<-c()
 for (gene.code in c('BCL2','BCL6','MYC','TP53')){
   par(mfrow=c(2,2))
-  m<-linearCox.analyze(gene.code)
+  m<-automated.survival.analyze(gene.code)
   AIC<-c(AIC,m$AIC)
   Concordance<-c(Concordance,m$concordance$value)
   LRatio.pvalue<-c(LRatio.pvalue,m$LRatio.pvalue)
